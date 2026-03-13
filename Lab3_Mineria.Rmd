@@ -115,4 +115,23 @@ load("datos/listings.RData")
 
 > **Nota sobre el preprocesamiento:** En la tabla anterior se evidencia que diversas variables cuantitativas (como `price`, `host_response_rate` y `host_acceptance_rate`) fueron interpretadas por R como texto (`chr`) debido a la inclusión de símbolos de moneda o porcentajes. Asimismo, existen numerosas variables de identificación (URLs, IDs) que son irrelevantes para un modelo predictivo. Esta clasificación justifica las acciones de limpieza tomadas en la siguiente sección.
 
+## Preprocesamiento inicial
+```{r}
+listings_clean <- listings %>%
+  # Limpieza de la variable predictora (price)
+  # parse_number extrae el número sin importar los símbolos raros que tenga el texto
+  mutate(price = parse_number(price)) %>%
+  
+  # Eliminación de variables innecesarias (IDs puros, URLs y texto libre extenso)
+  select(-c(listing_url, scrape_id, picture_url, host_url, host_thumbnail_url, 
+            host_picture_url, description, neighborhood_overview, host_about, amenities))
+```
 
+Para poder entrenar algoritmos predictivos, es un requisito indispensable que la variable respuesta sea numérica. Por ello, se realicé una transformación en la columna price, adicionalmente se descartaron columnas de identificadores únicos y enlaces web, ya que estas características introducen ruido y no poseen poder predictivo generalizable para estimar el valor de una vivienda.
+
+
+## Exploración rápida de dimensiones
+```{r}
+dim(listings_clean)
+```
+Para este primer paso, utilizamos la función dim() en nuestro conjunto de datos ya limpio. Como podemos observar, el dataset cuenta con 171,748 observaciones que son filas y reducimos las características a 70 variables que son las columnas. Esto significa que tenemos una base robusta de propiedades de Airbnb para analizar y así poder hacer modelos predictivos eficientes.
