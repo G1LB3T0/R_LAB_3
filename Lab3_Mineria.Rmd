@@ -1,6 +1,6 @@
 ---
 title: "LAB 3"
-author: "Luis Gonzalez Joel Jaquez"
+author: "Luis Gonzalez, Joel Jaquez, Fabian Morales"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
