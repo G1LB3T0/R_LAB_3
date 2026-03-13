@@ -318,4 +318,18 @@ ggplot(datos_cluster, aes(x = accommodates, y = price, color = grupo)) +
 Al aplicar el modelo K-Means, logramos segmentar las propiedades en cuatro perfiles muy marcados. El Grupo 4 representa el grueso de los anuncios (más de 49 mil propiedades): son alojamientos pequeños para 3 o 4 personas, bastante accesibles con un promedio de $220 por noche y muy bien calificados (4.85). El Grupo 1 nos agrupó las opciones más grandes, ideales para familias o grupos de casi 10 personas, que obviamente cobran más (unos $613 en promedio) pero mantienen reseñas excelentes. Lo interesante salió con el Grupo 2: son alojamientos de tamaño similar a los más populares, pero claramente son las peores opciones de la plataforma porque sus calificaciones se desploman a un promedio de 3.61. Por último, el Grupo 3 aisló a los valores atípicos: un grupito de 168 propiedades de tamaño mediano pero con tarifas irreales de más de $47,000 la noche, que seguramente son alojamientos de ultra lujo o anfitriones que ingresaron mal el precio en la aplicación.
 
 
+## Matriz de Correlaciones
 
+```{r}
+# --- 1. MATRIZ DE CORRELACIONES ---
+datos_num <- listings_clean %>%
+  select(price, bedrooms, bathrooms, beds, number_of_reviews, accommodates) %>%
+  drop_na() # Quitamos NAs para que cor() funcione bien
+
+matriz_correlacion <- cor(datos_num)
+
+print(round(matriz_correlacion, 2))
+```
+Al calcular la matriz de correlaciones, nos topamos con un comportamiento bastante particular: ninguna de las variables numericas analizadas presenta una correlacion lineal fuerte con el precio. La relacion mas alta apenas alcanza un 0.10 con la capacidad de personas (accommodates), lo cual probablemente sea consecuencia de los valores atipicos extremos que vimos en la exploracion, los cuales distorsionan fuertemente el coeficiente de Pearson. Sin embargo, el hallazgo mas critico de cara a nuestro modelo de regresion lineal es la altisima multicolinealidad presente entre las variables de distribucion del espacio. La capacidad (accommodates), la cantidad de camas (beds) y el numero de habitaciones (bedrooms) muestran correlaciones altisimas entre si, rondando entre el 0.77 y el 0.81. En la practica, esto significa que las tres variables nos estan proporcionando exactamente la misma informacion; si las incluimos todas juntas en el modelo, solo vamos a generar ruido y confusion matematica. Lo mas estrategico sera seleccionar solo una de ellas (como accommodates) como predictora.
+
+## Gráficos de Dispersión (Impacto en el Precio)
