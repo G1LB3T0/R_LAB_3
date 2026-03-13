@@ -20,6 +20,10 @@ library(readr)
 library(nortest)
 ```
 
+## Link de GITHUB
+
+https://github.com/G1LB3T0/R_LAB_3
+
 # Cargar datos
 
 ```{r}
