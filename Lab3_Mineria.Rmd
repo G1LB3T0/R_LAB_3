@@ -165,3 +165,20 @@ muestra_precio <- sample(precios_validos, 5000)
 lillie.test(muestra_precio)
 ```
 Al aplicar la prueba de normalidad de Lilliefors sobre una muestra aleatoria de 5,000 registros de la variable `price`, obtuvimos un p-value de `< 2.2e-16`, el cual es significativamente menor al nivel de significancia estándar de 0.05. Por lo tanto, se rechaza la hipótesis nula y se comprueba estadísticamente que los precios de las propiedades no siguen una distribución normal. Este resultado matemático respalda el comportamiento asimétrico (sesgo a la derecha) observado previamente en el histograma. Para la construcción de nuestro modelo de regresión lineal múltiple, este hallazgo es crucial, ya que nos indica que será necesario aplicar transformaciones (como el logaritmo natural) a la variable respuesta para cumplir con los supuestos del algoritmo.
+
+
+## Precio vs Capacidad
+
+```{r}
+# Relación entre la capacidad de personas y el precio
+listings_clean %>%
+  # Filtramos precios atípicos y valores nulos
+  filter(!is.na(price), price < 1000, !is.na(accommodates)) %>%
+  ggplot(aes(x = factor(accommodates), y = price)) +
+  geom_boxplot(fill = "#FF8C00", alpha = 0.7, outlier.color = "red", outlier.size = 1) +
+  labs(title = "Relación entre Capacidad de la Propiedad y Precio",
+       x = "Capacidad (Cantidad de Personas)",
+       y = "Precio por Noche ($)") +
+  theme_minimal()
+```
+Al analizar la relación entre la capacidad de huéspedes (accommodates) y el precio por noche (price), se observa una clara tendencia positiva donde la mediana del costo incrementa conforme aumenta la capacidad de la propiedad. Sin embargo, el diagrama de caja revela una alta concentración de valores atípicos (precios premium cercanos a los \$1,000) en alojamientos pequeños para 2 a 6 personas, lo que indica que características adicionales como una ubicación exclusiva o amenidades de lujo pueden inflar el valor sin requerir más espacio. Asimismo, las propiedades grandes (10 o más personas) presentan una gran variabilidad y dispersión en sus tarifas, abarcando desde opciones accesibles hasta rentas muy costosas. Por lo tanto, aunque la capacidad es un predictor fuerte e indispensable para estimar el valor de una vivienda, esta alta dispersión hace estrictamente necesario combinarla con otras variables del conjunto de datos para que el modelo predictivo logre resultados precisos.
