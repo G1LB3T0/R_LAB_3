@@ -182,3 +182,140 @@ listings_clean %>%
   theme_minimal()
 ```
 Al analizar la relación entre la capacidad de huéspedes (accommodates) y el precio por noche (price), se observa una clara tendencia positiva donde la mediana del costo incrementa conforme aumenta la capacidad de la propiedad. Sin embargo, el diagrama de caja revela una alta concentración de valores atípicos (precios premium cercanos a los \$1,000) en alojamientos pequeños para 2 a 6 personas, lo que indica que características adicionales como una ubicación exclusiva o amenidades de lujo pueden inflar el valor sin requerir más espacio. Asimismo, las propiedades grandes (10 o más personas) presentan una gran variabilidad y dispersión en sus tarifas, abarcando desde opciones accesibles hasta rentas muy costosas. Por lo tanto, aunque la capacidad es un predictor fuerte e indispensable para estimar el valor de una vivienda, esta alta dispersión hace estrictamente necesario combinarla con otras variables del conjunto de datos para que el modelo predictivo logre resultados precisos.
+
+## Frecuencias
+
+```{r}
+# --- ANÁLISIS DE ROOM TYPE ---
+# Tabla de resumen
+room_summary <- listings_clean %>%
+  filter(!is.na(price)) %>%
+  group_by(room_type) %>%
+  summarise(Cantidad = n(), Precio_Promedio = mean(price, na.rm = TRUE)) %>%
+  arrange(desc(Cantidad))
+
+print(room_summary)
+
+# Gráfico de frecuencias por room_type
+ggplot(room_summary, aes(x = reorder(room_type, -Cantidad), y = Cantidad, fill = room_type)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Frecuencia por Tipo de Cuarto", x = "Tipo de Cuarto", y = "Cantidad")
+
+# Gráfico de precios promedio por room_type
+ggplot(room_summary, aes(x = reorder(room_type, -Precio_Promedio), y = Precio_Promedio, fill = room_type)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Precio Promedio por Tipo de Cuarto", x = "Tipo de Cuarto", y = "Precio Promedio ($)")
+
+# --- ANÁLISIS DE PROPERTY TYPE (TOP 10) ---
+# Tabla de resumen
+property_summary <- listings_clean %>%
+  filter(!is.na(price)) %>%
+  group_by(property_type) %>%
+  summarise(Cantidad = n(), Precio_Promedio = mean(price, na.rm = TRUE)) %>%
+  arrange(desc(Cantidad)) %>%
+  head(10)
+
+print(property_summary)
+
+# Gráfico de frecuencias por property_type
+ggplot(property_summary, aes(x = reorder(property_type, Cantidad), y = Cantidad, fill = property_type)) +
+  geom_col() +
+  coord_flip() + 
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Top 10 Tipos de Propiedad mas Frecuentes", x = "Tipo de Propiedad", y = "Cantidad")
+```
+
+Revisando los resultados, nos dimos cuenta de que la plataforma está dominada por los espacios completos; el tipo de cuarto que más abunda, por mucho, es el Entire home/apt con más de 65,000 anuncios, y si miramos el tipo de propiedad específico, lo que más predomina son las unidades de alquiler (Entire rental unit), los condominios y las casas enteras. Lo más loco de los datos salta cuando vemos los precios promedio: aunque casi no hay cuartos de hotel (Hotel room), estos resultan ser exageradamente caros, promediando casi los $24,500 por noche. Esto seguro pasa porque hay un par de valores atípicos o propiedades de súper lujo que nos están inflando el promedio de forma brutal, mientras que rentar un apartamento entero o un cuarto privado maneja precios mucho más lógicos y reales para el mercado.
+
+## Superhost
+
+```{r}
+# --- BOXPLOT: SUPERHOST VS PRICE ---
+listings_clean %>%
+  # Filtramos NA en precio, valores atipicos, y NA en el estatus de superhost
+  filter(!is.na(price), price < 1000, host_is_superhost %in% c("t", "f")) %>%
+  ggplot(aes(x = host_is_superhost, y = price, fill = host_is_superhost)) +
+  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.size = 1) +
+  scale_x_discrete(labels = c("f" = "Regular", "t" = "Superhost")) +
+  scale_fill_manual(values = c("f" = "#A9A9A9", "t" = "#FFD700")) + # Gris y Dorado
+  labs(title = "Distribucion de Precios: Superhost vs Regular",
+       x = "Estatus del Anfitrion",
+       y = "Precio por Noche ($)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+Al evaluar si la insignia de "Superhost" realmente permite cobrar más caro, el diagrama de caja nos muestra que sí hay una ventaja, pero es bastante leve. La mediana del precio por noche para los Superhosts está un poco por encima de la de los anfitriones regulares, al igual que el rango donde se concentra la mayoría de las tarifas. Esto nos indica que tener el estatus sí da un pequeño margen para subir el precio base. Sin embargo, al ver la enorme cantidad de valores atípicos en ambos grupos (los puntos rojos que llegan hasta los $1,000), queda claro que las propiedades más caras no son exclusivas de los Superhosts. Es decir, la pura insignia ayuda un poco, pero seguramente pesan mucho más factores como la ubicación premium o el tamaño de la propiedad para llegar a esos precios tan altos.
+
+
+## K means
+
+```{r}
+# --- METODO DEL CODO PARA K-MEANS ---
+# 1. Preparacion de los datos (igual que antes)
+datos_cluster <- listings_clean %>%
+  select(price, accommodates, review_scores_rating) %>%
+  drop_na()
+
+# 2. Escalamiento de variables
+datos_escalados <- scale(datos_cluster)
+
+# 3. Calcular la suma de cuadrados (WCSS) para k de 1 a 10
+set.seed(123)
+wcss <- sapply(1:10, function(k) {
+  kmeans(datos_escalados, centers = k, nstart = 10)$tot.withinss
+})
+
+# 4. Crear un dataframe para graficar
+codo_df <- data.frame(k = 1:10, WCSS = wcss)
+
+# 5. Graficar el Metodo del Codo
+ggplot(codo_df, aes(x = k, y = WCSS)) +
+  geom_line(color = "#2E8B57", linewidth = 1) +
+  geom_point(color = "#FF8C00", size = 3) +
+  scale_x_continuous(breaks = 1:10) +
+  labs(title = "Metodo del Codo para determinar K optimo",
+       x = "Numero de Clusters (k)",
+       y = "Suma de Cuadrados (WCSS)") +
+  theme_minimal()
+```
+Al aplicar el Método del Codo para determinar la cantidad óptima de grupos, observamos que la suma de cuadrados dentro del clúster (WCSS) disminuye drásticamente a medida que aumentamos los grupos, pero hace un quiebre evidente al llegar a k=4. A partir de los 4 clústeres, la curva se aplana significativamente y las reducciones en la varianza pasan a ser mínimas. Por lo tanto, determinamos que el número óptimo para segmentar las propiedades es de 4 grupos.
+
+```{r}
+# --- CLUSTERING CON K-MEANS (K=4) Y GRAFICA ---
+# 1. Corremos el algoritmo con k=4
+set.seed(123)
+kmeans_result <- kmeans(datos_escalados, centers = 4, nstart = 25)
+
+# 2. Asignamos el grupo al dataset
+datos_cluster$grupo <- as.factor(kmeans_result$cluster)
+
+# 3. Tabla resumen para interpretar los 4 grupos
+resumen_grupos <- datos_cluster %>%
+  group_by(grupo) %>%
+  summarise(
+    Cantidad = n(),
+    Precio_Promedio = mean(price),
+    Capacidad_Promedio = mean(accommodates),
+    Calificacion_Promedio = mean(review_scores_rating)
+  )
+
+print(resumen_grupos)
+
+# 4. Grafica de los grupos (Capacidad vs Precio)
+ggplot(datos_cluster, aes(x = accommodates, y = price, color = grupo)) +
+  # Usamos jitter para que los puntos no se encimen y se vea la densidad
+  geom_jitter(alpha = 0.4, width = 0.3, height = 0, size = 1) + 
+  scale_color_manual(values = c("#FF6B6B", "#4ECDC4", "#45B7D1", "#F9CA24")) + # Paleta de colores 
+  labs(title = "Segmentacion de Propiedades (K-Means, k=4)",
+       x = "Capacidad (Cantidad de Personas)",
+       y = "Precio por Noche ($)",
+       color = "Cluster") +
+  theme_minimal()
+```
+Al aplicar el modelo K-Means, logramos segmentar las propiedades en cuatro perfiles muy marcados. El Grupo 4 representa el grueso de los anuncios (más de 49 mil propiedades): son alojamientos pequeños para 3 o 4 personas, bastante accesibles con un promedio de $220 por noche y muy bien calificados (4.85). El Grupo 1 nos agrupó las opciones más grandes, ideales para familias o grupos de casi 10 personas, que obviamente cobran más (unos $613 en promedio) pero mantienen reseñas excelentes. Lo interesante salió con el Grupo 2: son alojamientos de tamaño similar a los más populares, pero claramente son las peores opciones de la plataforma porque sus calificaciones se desploman a un promedio de 3.61. Por último, el Grupo 3 aisló a los valores atípicos: un grupito de 168 propiedades de tamaño mediano pero con tarifas irreales de más de $47,000 la noche, que seguramente son alojamientos de ultra lujo o anfitriones que ingresaron mal el precio en la aplicación.
+
+
+
