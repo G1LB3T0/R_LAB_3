@@ -333,3 +333,50 @@ print(round(matriz_correlacion, 2))
 Al calcular la matriz de correlaciones, nos topamos con un comportamiento bastante particular: ninguna de las variables numericas analizadas presenta una correlacion lineal fuerte con el precio. La relacion mas alta apenas alcanza un 0.10 con la capacidad de personas (accommodates), lo cual probablemente sea consecuencia de los valores atipicos extremos que vimos en la exploracion, los cuales distorsionan fuertemente el coeficiente de Pearson. Sin embargo, el hallazgo mas critico de cara a nuestro modelo de regresion lineal es la altisima multicolinealidad presente entre las variables de distribucion del espacio. La capacidad (accommodates), la cantidad de camas (beds) y el numero de habitaciones (bedrooms) muestran correlaciones altisimas entre si, rondando entre el 0.77 y el 0.81. En la practica, esto significa que las tres variables nos estan proporcionando exactamente la misma informacion; si las incluimos todas juntas en el modelo, solo vamos a generar ruido y confusion matematica. Lo mas estrategico sera seleccionar solo una de ellas (como accommodates) como predictora.
 
 ## Gráficos de Dispersión (Impacto en el Precio)
+
+```{r}
+# --- 2. GRAFICOS DE DISPERSION ---
+# Filtramos precios absurdos y el clavo de las 50 habitaciones (una locura es onda xddddd)
+datos_dispersion_limpios <- listings_clean %>%
+  filter(!is.na(price), price < 1000, 
+         !is.na(accommodates), 
+         !is.na(bedrooms), bedrooms <= 10) # Filtro salvavidas
+
+# Grafico: Capacidad vs Precio
+ggplot(datos_dispersion_limpios, aes(x = accommodates, y = price)) +
+  geom_point(alpha = 0.3, color = "#4682B4") +
+  geom_smooth(method = "lm", color = "red", se = FALSE, linewidth = 1.2) +
+  labs(title = "Relacion: Capacidad vs Precio (Datos Limpios)",
+       x = "Capacidad (Cantidad de Personas)",
+       y = "Precio por Noche ($)") +
+  theme_minimal()
+
+# Grafico: Habitaciones vs Precio
+ggplot(datos_dispersion_limpios, aes(x = bedrooms, y = price)) +
+  geom_point(alpha = 0.3, color = "#20B2AA") +
+  geom_smooth(method = "lm", color = "red", se = FALSE, linewidth = 1.2) +
+  labs(title = "Relacion: Habitaciones vs Precio (Datos Limpios)",
+       x = "Cantidad de Habitaciones (Bedrooms)",
+       y = "Precio por Noche ($)") +
+  theme_minimal()
+```
+Durante el analisis de las variables de espacio frente al precio, nos topamos con un error grave en la cantidad de habitaciones (bedrooms): existian propiedades atipicas registradas con hasta 50 cuartos, lo cual estiraba el eje horizontal y disparaba la linea de tendencia a precios irreales. Para corregir este ruido y no arruinar el modelo predictivo de la otra semana, aplicamos un filtro para evaluar unicamente propiedades logicas con 10 habitaciones o menos. Ya con los datos limpios, ambos graficos de dispersion nos muestran una tendencia positiva y clara: a mayor tamano, mayor es el precio por noche. En el grafico de capacidad (accommodates) vemos una distribucion constante y logica a lo largo de todo el eje, mientras que en el de habitaciones los datos se concentran fuertemente en alquileres pequenos de 1 a 3 cuartos. En resumen, ambas graficas nos confirman que el espacio fisico es un factor determinante para el costo y que ambas son excelentes variables predictoras, siempre y cuando limpiemos los valores extremos.
+
+
+## Multicolinealidad (beds vs accommodates)
+
+```{r}
+# --- 3. MULTICOLINEALIDAD  ---
+datos_multi_limpios <- datos_num %>%
+  filter(beds <= 15, accommodates <= 15)
+
+# Volvemos a graficar
+ggplot(datos_multi_limpios, aes(x = beds, y = accommodates)) +
+  geom_point(alpha = 0.3, color = "#FF8C00") +
+  geom_smooth(method = "lm", color = "black", se = FALSE, linewidth = 1.2) +
+  labs(title = "Evaluacion de Multicolinealidad: Camas vs Capacidad",
+       x = "Cantidad de Camas (Beds)",
+       y = "Capacidad (Personas)") +
+  theme_minimal()
+```
+Al analizar la multicolinealidad entre la cantidad de camas (beds) y la capacidad de personas (accommodates), confirmamos una relacion extremadamente fuerte. Al limpiar los datos de valores incoherentes (como registros con mas de 100 camas), la grafica muestra que ambas variables se mueven casi de forma identica; a medida que sube el numero de camas, sube la capacidad de forma lineal. En la matriz de correlacion esto se refleja con un valor de 0.81, lo cual es altisimo. Para nuestro modelo de regresion lineal de la otra semana, este hallazgo es fundamental porque nos avisa que no debemos usar ambas variables al mismo tiempo, ya que estariamos duplicando informacion y causando inestabilidad en los coeficientes del modelo. Lo ideal sera quedarnos unicamente con la capacidad (accommodates) por ser una variable mas estandarizada para predecir el precio.
