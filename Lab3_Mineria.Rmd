@@ -9,22 +9,110 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Librerías a utilizar
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(readr)
+library(nortest)
 ```
 
-## Including Plots
+# Cargar datos
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+load("datos/listings.RData")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Análisis exploratorio
+
+## Descripción del Conjunto de Datos (Diccionario de Variables)
+
+| Variable | Tipo (R) | Clasificación Estadística | Descripción |
+|:-----------------|:-----------------|:-----------------|:-----------------|
+| **id** | num | Cualitativa Nominal | Identificador único de la propiedad en Airbnb. |
+| **listing_url** | chr | Cualitativa Nominal | Enlace web a la publicación de la propiedad. |
+| **scrape_id** | num | Cualitativa Nominal | Identificador único del proceso de extracción de datos. |
+| **last_scraped** | chr | Cualitativa Ordinal | Fecha en la que se extrajo la información de esta propiedad. |
+| **source** | chr | Cualitativa Nominal | Fuente de donde se obtuvo la información (ej. city scrape). |
+| **name** | chr | Cualitativa Nominal | Título o nombre del anuncio de la propiedad. |
+| **description** | chr | Cualitativa Nominal | Descripción detallada de la propiedad proporcionada por el anfitrión. |
+| **neighborhood_overview** | chr | Cualitativa Nominal | Descripción del vecindario proporcionada por el anfitrión. |
+| **picture_url** | chr | Cualitativa Nominal | Enlace a la imagen principal de la propiedad. |
+| **host_id** | int | Cualitativa Nominal | Identificador único del anfitrión. |
+| **host_url** | chr | Cualitativa Nominal | Enlace al perfil del anfitrión. |
+| **host_name** | chr | Cualitativa Nominal | Nombre de pila del anfitrión. |
+| **host_since** | chr | Cualitativa Ordinal | Fecha en la que el anfitrión se unió a la plataforma. |
+| **host_location** | chr | Cualitativa Nominal | Ubicación declarada por el anfitrión en su perfil. |
+| **host_about** | chr | Cualitativa Nominal | Descripción personal del anfitrión. |
+| **host_response_time** | chr | Cualitativa Ordinal | Tiempo promedio que tarda el anfitrión en responder mensajes. |
+| **host_response_rate** | chr | Cuantitativa Continua | Porcentaje de mensajes respondidos por el anfitrión (formato texto). |
+| **host_acceptance_rate** | chr | Cuantitativa Continua | Porcentaje de solicitudes de reserva aceptadas (formato texto). |
+| **host_is_superhost** | chr | Cualitativa Nominal | Indica si el anfitrión tiene estatus de "Superhost" (t/f). |
+| **host_thumbnail_url** | chr | Cualitativa Nominal | Enlace a la imagen en miniatura del perfil del anfitrión. |
+| **host_picture_url** | chr | Cualitativa Nominal | Enlace a la imagen de perfil del anfitrión. |
+| **host_neighbourhood** | chr | Cualitativa Nominal | Vecindario principal del anfitrión. |
+| **host_listings_count** | int | Cuantitativa Discreta | Cantidad de propiedades que el anfitrión tiene listadas. |
+| **host_total_listings_count** | int | Cuantitativa Discreta | Cantidad total histórica de propiedades del anfitrión. |
+| **host_verifications** | chr | Cualitativa Nominal | Métodos por los cuales el anfitrión ha sido verificado (ej. email, teléfono). |
+| **host_has_profile_pic** | chr | Cualitativa Nominal | Indica si el anfitrión tiene foto de perfil (t/f). |
+| **host_identity_verified** | chr | Cualitativa Nominal | Indica si la identidad del anfitrión está verificada (t/f). |
+| **neighbourhood** | chr | Cualitativa Nominal | Nombre general del vecindario. |
+| **neighbourhood_cleansed** | chr | Cualitativa Nominal | Código postal o nombre estandarizado del vecindario. |
+| **neighbourhood_group_cleansed** | chr | Cualitativa Nominal | Agrupación mayor de vecindarios (usualmente vacía en esta ciudad). |
+| **latitude** | num | Cuantitativa Continua | Coordenada de latitud de la propiedad. |
+| **longitude** | num | Cuantitativa Continua | Coordenada de longitud de la propiedad. |
+| **property_type** | chr | Cualitativa Nominal | Categoría arquitectónica de la propiedad (ej. Casa, Apartamento). |
+| **room_type** | chr | Cualitativa Nominal | Tipo de espacio alquilado (ej. Casa entera, Habitación privada). |
+| **accommodates** | int | Cuantitativa Discreta | Capacidad máxima de huéspedes simultáneos en la propiedad. |
+| **bathrooms** | num | Cuantitativa Discreta | Cantidad de baños disponibles. |
+| **bathrooms_text** | chr | Cualitativa Nominal | Descripción en texto de la cantidad y tipo de baños (ej. "1.5 baths"). |
+| **bedrooms** | int | Cuantitativa Discreta | Cantidad de habitaciones privadas en la propiedad. |
+| **beds** | int | Cuantitativa Discreta | Cantidad total de camas en la propiedad. |
+| **amenities** | chr | Cualitativa Nominal | Lista en formato JSON de las comodidades ofrecidas (WiFi, piscina, etc.). |
+| **price** | chr | Cuantitativa Continua | Precio por noche. *(Variable Respuesta - Se lee como texto por el símbolo \$).* |
+| **minimum_nights** | int | Cuantitativa Discreta | Estancia mínima exigida (en noches). |
+| **maximum_nights** | int | Cuantitativa Discreta | Estancia máxima permitida (en noches). |
+| **minimum_minimum_nights** | int | Cuantitativa Discreta | El valor mínimo histórico configurado para estancia mínima. |
+| **maximum_minimum_nights** | int | Cuantitativa Discreta | El valor máximo histórico configurado para estancia mínima. |
+| **minimum_maximum_nights** | int | Cuantitativa Discreta | El valor mínimo histórico configurado para estancia máxima. |
+| **maximum_maximum_nights** | int | Cuantitativa Discreta | El valor máximo histórico configurado para estancia máxima. |
+| **minimum_nights_avg_ntm** | num | Cuantitativa Continua | Promedio móvil de noches mínimas exigidas. |
+| **maximum_nights_avg_ntm** | num | Cuantitativa Continua | Promedio móvil de noches máximas permitidas. |
+| **calendar_updated** | logi | Cualitativa Nominal | Indicador de última actualización del calendario (usualmente nulo). |
+| **has_availability** | chr | Cualitativa Nominal | Indica si la propiedad tiene días disponibles en el calendario (t/f). |
+| **availability_30** | int | Cuantitativa Discreta | Noches disponibles para reserva en los próximos 30 días. |
+| **availability_60** | int | Cuantitativa Discreta | Noches disponibles para reserva en los próximos 60 días. |
+| **availability_90** | int | Cuantitativa Discreta | Noches disponibles para reserva en los próximos 90 días. |
+| **availability_365** | int | Cuantitativa Discreta | Noches disponibles para reserva en los próximos 365 días. |
+| **calendar_last_scraped** | chr | Cualitativa Ordinal | Fecha en la que se extrajo el calendario por última vez. |
+| **number_of_reviews** | int | Cuantitativa Discreta | Total de reseñas acumuladas de la propiedad. |
+| **number_of_reviews_ltm** | int | Cuantitativa Discreta | Reseñas recibidas en los últimos 12 meses (Last Twelve Months). |
+| **number_of_reviews_l30d** | int | Cuantitativa Discreta | Reseñas recibidas en los últimos 30 días. |
+| **availability_eoy** | int | Cuantitativa Discreta | Disponibilidad calculada hacia el final del año. |
+| **number_of_reviews_ly** | int | Cuantitativa Discreta | Reseñas recibidas el año anterior. |
+| **estimated_occupancy_l365d** | int | Cuantitativa Discreta | Días estimados de ocupación en el último año. |
+| **estimated_revenue_l365d** | int | Cuantitativa Continua | Ingresos estimados generados en el último año. |
+| **first_review** | chr | Cualitativa Ordinal | Fecha de la primera reseña recibida. |
+| **last_review** | chr | Cualitativa Ordinal | Fecha de la última reseña recibida. |
+| **review_scores_rating** | num | Cuantitativa Continua | Calificación general promedio otorgada por los huéspedes. |
+| **review_scores_accuracy** | num | Cuantitativa Continua | Calificación específica sobre la precisión del anuncio. |
+| **review_scores_cleanliness** | num | Cuantitativa Continua | Calificación específica sobre la limpieza de la propiedad. |
+| **review_scores_checkin** | num | Cuantitativa Continua | Calificación específica sobre el proceso de llegada. |
+| **review_scores_communication** | num | Cuantitativa Continua | Calificación específica sobre la comunicación con el anfitrión. |
+| **review_scores_location** | num | Cuantitativa Continua | Calificación específica sobre la ubicación de la propiedad. |
+| **review_scores_value** | num | Cuantitativa Continua | Calificación específica sobre la relación calidad-precio. |
+| **license** | chr | Cualitativa Nominal | Número de licencia comercial de la propiedad (si aplica). |
+| **instant_bookable** | chr | Cualitativa Nominal | Indica si la propiedad permite reserva inmediata sin preaprobación (t/f). |
+| **calculated_host_listings_count** | int | Cuantitativa Discreta | Cantidad de propiedades de este anfitrión en esta ciudad específica. |
+| **calculated_host_listings_count_entire_homes** | int | Cuantitativa Discreta | Cantidad de casas enteras de este anfitrión. |
+| **calculated_host_listings_count_private_rooms** | int | Cuantitativa Discreta | Cantidad de habitaciones privadas de este anfitrión. |
+| **calculated_host_listings_count_shared_rooms** | int | Cuantitativa Discreta | Cantidad de habitaciones compartidas de este anfitrión. |
+| **reviews_per_month** | num | Cuantitativa Continua | Promedio de reseñas recibidas por mes. |
+| **city** | chr | Cualitativa Nominal | Ciudad principal donde se encuentra la propiedad. |
+
+> **Nota sobre el preprocesamiento:** En la tabla anterior se evidencia que diversas variables cuantitativas (como `price`, `host_response_rate` y `host_acceptance_rate`) fueron interpretadas por R como texto (`chr`) debido a la inclusión de símbolos de moneda o porcentajes. Asimismo, existen numerosas variables de identificación (URLs, IDs) que son irrelevantes para un modelo predictivo. Esta clasificación justifica las acciones de limpieza tomadas en la siguiente sección.
+
+
