@@ -135,3 +135,33 @@ Para poder entrenar algoritmos predictivos, es un requisito indispensable que la
 dim(listings_clean)
 ```
 Para este primer paso, utilizamos la función dim() en nuestro conjunto de datos ya limpio. Como podemos observar, el dataset cuenta con 171,748 observaciones que son filas y reducimos las características a 70 variables que son las columnas. Esto significa que tenemos una base robusta de propiedades de Airbnb para analizar y así poder hacer modelos predictivos eficientes.
+
+
+## Análisis de la Variable Objetivo (Precio)
+```{r histograma-precio, warning=FALSE}
+# Histograma filtrando valores atípicos para mejor visualización
+listings_clean %>%
+  filter(!is.na(price), price < 1000) %>%
+  ggplot(aes(x = price)) +
+  geom_histogram(bins = 40, fill = "#2E8B57", color = "white") +
+  labs(title = "Distribución de Precios (Propiedades < $1,000/noche)",
+       x = "Precio ($)",
+       y = "Cantidad de Propiedades") +
+  theme_minimal()
+```
+Al remover los valores atípicos (precios superiores a 1,000) y los datos nulos, la verdadera distribución del mercado se hace visible. Se observa una fuerte asimetría positiva (sesgo a la derecha), indicando que la gran mayoría de las propiedades listadas por SmartStay Advisors se concentran en un rango de precios accesible, predominantemente entre los 50 y 250 por noche. Esta asimetría sugiere que, al momento de entrenar nuestros modelos de regresión lineal, probablemente será beneficioso aplicar una transformación (como el logaritmo) a la variable precio para normalizar su distribución, cumplir con los supuestos estadísticos y mejorar el ajuste del algoritmo.
+
+## Análisis de la Variable Objetivo (Precio)
+```{r}
+# Extraer los precios válidos (sin NAs)
+precios_validos <- na.omit(listings_clean$price)
+
+# Tomar una muestra aleatoria de 5000 datos 
+# (lillie.test no soporta más de 5000 observaciones)
+set.seed(123)
+muestra_precio <- sample(precios_validos, 5000)
+
+# prueba de Lilliefors
+lillie.test(muestra_precio)
+```
+Al aplicar la prueba de normalidad de Lilliefors sobre una muestra aleatoria de 5,000 registros de la variable `price`, obtuvimos un p-value de `< 2.2e-16`, el cual es significativamente menor al nivel de significancia estándar de 0.05. Por lo tanto, se rechaza la hipótesis nula y se comprueba estadísticamente que los precios de las propiedades no siguen una distribución normal. Este resultado matemático respalda el comportamiento asimétrico (sesgo a la derecha) observado previamente en el histograma. Para la construcción de nuestro modelo de regresión lineal múltiple, este hallazgo es crucial, ya que nos indica que será necesario aplicar transformaciones (como el logaritmo natural) a la variable respuesta para cumplir con los supuestos del algoritmo.
