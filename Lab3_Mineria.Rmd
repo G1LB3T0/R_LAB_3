@@ -18,11 +18,12 @@ library(tidyr)
 library(stringr)
 library(readr)
 library(nortest)
+library(caret)
 ```
 
 ## Link de GITHUB
 
-https://github.com/G1LB3T0/R_LAB_3
+<https://github.com/G1LB3T0/R_LAB_3>
 
 # Cargar datos
 
@@ -120,6 +121,7 @@ load("datos/listings.RData")
 > **Nota sobre el preprocesamiento:** En la tabla anterior se evidencia que diversas variables cuantitativas (como `price`, `host_response_rate` y `host_acceptance_rate`) fueron interpretadas por R como texto (`chr`) debido a la inclusión de símbolos de moneda o porcentajes. Asimismo, existen numerosas variables de identificación (URLs, IDs) que son irrelevantes para un modelo predictivo. Esta clasificación justifica las acciones de limpieza tomadas en la siguiente sección.
 
 ## Preprocesamiento inicial
+
 ```{r}
 listings_clean <- listings %>%
   # Limpieza de la variable predictora (price)
@@ -133,15 +135,16 @@ listings_clean <- listings %>%
 
 Para poder entrenar algoritmos predictivos, es un requisito indispensable que la variable respuesta sea numérica. Por ello, se realicé una transformación en la columna price, adicionalmente se descartaron columnas de identificadores únicos y enlaces web, ya que estas características introducen ruido y no poseen poder predictivo generalizable para estimar el valor de una vivienda.
 
-
 ## Exploración rápida de dimensiones
+
 ```{r}
 dim(listings_clean)
 ```
+
 Para este primer paso, utilizamos la función dim() en nuestro conjunto de datos ya limpio. Como podemos observar, el dataset cuenta con 171,748 observaciones que son filas y reducimos las características a 70 variables que son las columnas. Esto significa que tenemos una base robusta de propiedades de Airbnb para analizar y así poder hacer modelos predictivos eficientes.
 
-
 ## Análisis de la Variable Objetivo (Precio)
+
 ```{r histograma-precio, warning=FALSE}
 # Histograma filtrando valores atípicos para mejor visualización
 listings_clean %>%
@@ -153,9 +156,11 @@ listings_clean %>%
        y = "Cantidad de Propiedades") +
   theme_minimal()
 ```
+
 Al remover los valores atípicos (precios superiores a 1,000) y los datos nulos, la verdadera distribución del mercado se hace visible. Se observa una fuerte asimetría positiva (sesgo a la derecha), indicando que la gran mayoría de las propiedades listadas por SmartStay Advisors se concentran en un rango de precios accesible, predominantemente entre los 50 y 250 por noche. Esta asimetría sugiere que, al momento de entrenar nuestros modelos de regresión lineal, probablemente será beneficioso aplicar una transformación (como el logaritmo) a la variable precio para normalizar su distribución, cumplir con los supuestos estadísticos y mejorar el ajuste del algoritmo.
 
 ## Análisis de la Variable Objetivo (Precio)
+
 ```{r}
 # Extraer los precios válidos (sin NAs)
 precios_validos <- na.omit(listings_clean$price)
@@ -168,8 +173,8 @@ muestra_precio <- sample(precios_validos, 5000)
 # prueba de Lilliefors
 lillie.test(muestra_precio)
 ```
-Al aplicar la prueba de normalidad de Lilliefors sobre una muestra aleatoria de 5,000 registros de la variable `price`, obtuvimos un p-value de `< 2.2e-16`, el cual es significativamente menor al nivel de significancia estándar de 0.05. Por lo tanto, se rechaza la hipótesis nula y se comprueba estadísticamente que los precios de las propiedades no siguen una distribución normal. Este resultado matemático respalda el comportamiento asimétrico (sesgo a la derecha) observado previamente en el histograma. Para la construcción de nuestro modelo de regresión lineal múltiple, este hallazgo es crucial, ya que nos indica que será necesario aplicar transformaciones (como el logaritmo natural) a la variable respuesta para cumplir con los supuestos del algoritmo.
 
+Al aplicar la prueba de normalidad de Lilliefors sobre una muestra aleatoria de 5,000 registros de la variable `price`, obtuvimos un p-value de `< 2.2e-16`, el cual es significativamente menor al nivel de significancia estándar de 0.05. Por lo tanto, se rechaza la hipótesis nula y se comprueba estadísticamente que los precios de las propiedades no siguen una distribución normal. Este resultado matemático respalda el comportamiento asimétrico (sesgo a la derecha) observado previamente en el histograma. Para la construcción de nuestro modelo de regresión lineal múltiple, este hallazgo es crucial, ya que nos indica que será necesario aplicar transformaciones (como el logaritmo natural) a la variable respuesta para cumplir con los supuestos del algoritmo.
 
 ## Precio vs Capacidad
 
@@ -185,6 +190,7 @@ listings_clean %>%
        y = "Precio por Noche ($)") +
   theme_minimal()
 ```
+
 Al analizar la relación entre la capacidad de huéspedes (accommodates) y el precio por noche (price), se observa una clara tendencia positiva donde la mediana del costo incrementa conforme aumenta la capacidad de la propiedad. Sin embargo, el diagrama de caja revela una alta concentración de valores atípicos (precios premium cercanos a los \$1,000) en alojamientos pequeños para 2 a 6 personas, lo que indica que características adicionales como una ubicación exclusiva o amenidades de lujo pueden inflar el valor sin requerir más espacio. Asimismo, las propiedades grandes (10 o más personas) presentan una gran variabilidad y dispersión en sus tarifas, abarcando desde opciones accesibles hasta rentas muy costosas. Por lo tanto, aunque la capacidad es un predictor fuerte e indispensable para estimar el valor de una vivienda, esta alta dispersión hace estrictamente necesario combinarla con otras variables del conjunto de datos para que el modelo predictivo logre resultados precisos.
 
 ## Frecuencias
@@ -232,7 +238,7 @@ ggplot(property_summary, aes(x = reorder(property_type, Cantidad), y = Cantidad,
   labs(title = "Top 10 Tipos de Propiedad mas Frecuentes", x = "Tipo de Propiedad", y = "Cantidad")
 ```
 
-Revisando los resultados, nos dimos cuenta de que la plataforma está dominada por los espacios completos; el tipo de cuarto que más abunda, por mucho, es el Entire home/apt con más de 65,000 anuncios, y si miramos el tipo de propiedad específico, lo que más predomina son las unidades de alquiler (Entire rental unit), los condominios y las casas enteras. Lo más loco de los datos salta cuando vemos los precios promedio: aunque casi no hay cuartos de hotel (Hotel room), estos resultan ser exageradamente caros, promediando casi los $24,500 por noche. Esto seguro pasa porque hay un par de valores atípicos o propiedades de súper lujo que nos están inflando el promedio de forma brutal, mientras que rentar un apartamento entero o un cuarto privado maneja precios mucho más lógicos y reales para el mercado.
+Revisando los resultados, nos dimos cuenta de que la plataforma está dominada por los espacios completos; el tipo de cuarto que más abunda, por mucho, es el Entire home/apt con más de 65,000 anuncios, y si miramos el tipo de propiedad específico, lo que más predomina son las unidades de alquiler (Entire rental unit), los condominios y las casas enteras. Lo más loco de los datos salta cuando vemos los precios promedio: aunque casi no hay cuartos de hotel (Hotel room), estos resultan ser exageradamente caros, promediando casi los \$24,500 por noche. Esto seguro pasa porque hay un par de valores atípicos o propiedades de súper lujo que nos están inflando el promedio de forma brutal, mientras que rentar un apartamento entero o un cuarto privado maneja precios mucho más lógicos y reales para el mercado.
 
 ## Superhost
 
@@ -251,8 +257,8 @@ listings_clean %>%
   theme_minimal() +
   theme(legend.position = "none")
 ```
-Al evaluar si la insignia de "Superhost" realmente permite cobrar más caro, el diagrama de caja nos muestra que sí hay una ventaja, pero es bastante leve. La mediana del precio por noche para los Superhosts está un poco por encima de la de los anfitriones regulares, al igual que el rango donde se concentra la mayoría de las tarifas. Esto nos indica que tener el estatus sí da un pequeño margen para subir el precio base. Sin embargo, al ver la enorme cantidad de valores atípicos en ambos grupos (los puntos rojos que llegan hasta los $1,000), queda claro que las propiedades más caras no son exclusivas de los Superhosts. Es decir, la pura insignia ayuda un poco, pero seguramente pesan mucho más factores como la ubicación premium o el tamaño de la propiedad para llegar a esos precios tan altos.
 
+Al evaluar si la insignia de "Superhost" realmente permite cobrar más caro, el diagrama de caja nos muestra que sí hay una ventaja, pero es bastante leve. La mediana del precio por noche para los Superhosts está un poco por encima de la de los anfitriones regulares, al igual que el rango donde se concentra la mayoría de las tarifas. Esto nos indica que tener el estatus sí da un pequeño margen para subir el precio base. Sin embargo, al ver la enorme cantidad de valores atípicos en ambos grupos (los puntos rojos que llegan hasta los \$1,000), queda claro que las propiedades más caras no son exclusivas de los Superhosts. Es decir, la pura insignia ayuda un poco, pero seguramente pesan mucho más factores como la ubicación premium o el tamaño de la propiedad para llegar a esos precios tan altos.
 
 ## K means
 
@@ -285,6 +291,7 @@ ggplot(codo_df, aes(x = k, y = WCSS)) +
        y = "Suma de Cuadrados (WCSS)") +
   theme_minimal()
 ```
+
 Al aplicar el Método del Codo para determinar la cantidad óptima de grupos, observamos que la suma de cuadrados dentro del clúster (WCSS) disminuye drásticamente a medida que aumentamos los grupos, pero hace un quiebre evidente al llegar a k=4. A partir de los 4 clústeres, la curva se aplana significativamente y las reducciones en la varianza pasan a ser mínimas. Por lo tanto, determinamos que el número óptimo para segmentar las propiedades es de 4 grupos.
 
 ```{r}
@@ -319,8 +326,8 @@ ggplot(datos_cluster, aes(x = accommodates, y = price, color = grupo)) +
        color = "Cluster") +
   theme_minimal()
 ```
-Al aplicar el modelo K-Means, logramos segmentar las propiedades en cuatro perfiles muy marcados. El Grupo 4 representa el grueso de los anuncios (más de 49 mil propiedades): son alojamientos pequeños para 3 o 4 personas, bastante accesibles con un promedio de $220 por noche y muy bien calificados (4.85). El Grupo 1 nos agrupó las opciones más grandes, ideales para familias o grupos de casi 10 personas, que obviamente cobran más (unos $613 en promedio) pero mantienen reseñas excelentes. Lo interesante salió con el Grupo 2: son alojamientos de tamaño similar a los más populares, pero claramente son las peores opciones de la plataforma porque sus calificaciones se desploman a un promedio de 3.61. Por último, el Grupo 3 aisló a los valores atípicos: un grupito de 168 propiedades de tamaño mediano pero con tarifas irreales de más de $47,000 la noche, que seguramente son alojamientos de ultra lujo o anfitriones que ingresaron mal el precio en la aplicación.
 
+Al aplicar el modelo K-Means, logramos segmentar las propiedades en cuatro perfiles muy marcados. El Grupo 4 representa el grueso de los anuncios (más de 49 mil propiedades): son alojamientos pequeños para 3 o 4 personas, bastante accesibles con un promedio de \$220 por noche y muy bien calificados (4.85). El Grupo 1 nos agrupó las opciones más grandes, ideales para familias o grupos de casi 10 personas, que obviamente cobran más (unos \$613 en promedio) pero mantienen reseñas excelentes. Lo interesante salió con el Grupo 2: son alojamientos de tamaño similar a los más populares, pero claramente son las peores opciones de la plataforma porque sus calificaciones se desploman a un promedio de 3.61. Por último, el Grupo 3 aisló a los valores atípicos: un grupito de 168 propiedades de tamaño mediano pero con tarifas irreales de más de \$47,000 la noche, que seguramente son alojamientos de ultra lujo o anfitriones que ingresaron mal el precio en la aplicación.
 
 ## Matriz de Correlaciones
 
@@ -334,6 +341,7 @@ matriz_correlacion <- cor(datos_num)
 
 print(round(matriz_correlacion, 2))
 ```
+
 Al calcular la matriz de correlaciones, nos topamos con un comportamiento bastante particular: ninguna de las variables numericas analizadas presenta una correlacion lineal fuerte con el precio. La relacion mas alta apenas alcanza un 0.10 con la capacidad de personas (accommodates), lo cual probablemente sea consecuencia de los valores atipicos extremos que vimos en la exploracion, los cuales distorsionan fuertemente el coeficiente de Pearson. Sin embargo, el hallazgo mas critico de cara a nuestro modelo de regresion lineal es la altisima multicolinealidad presente entre las variables de distribucion del espacio. La capacidad (accommodates), la cantidad de camas (beds) y el numero de habitaciones (bedrooms) muestran correlaciones altisimas entre si, rondando entre el 0.77 y el 0.81. En la practica, esto significa que las tres variables nos estan proporcionando exactamente la misma informacion; si las incluimos todas juntas en el modelo, solo vamos a generar ruido y confusion matematica. Lo mas estrategico sera seleccionar solo una de ellas (como accommodates) como predictora.
 
 ## Gráficos de Dispersión (Impacto en el Precio)
@@ -364,8 +372,8 @@ ggplot(datos_dispersion_limpios, aes(x = bedrooms, y = price)) +
        y = "Precio por Noche ($)") +
   theme_minimal()
 ```
-Durante el analisis de las variables de espacio frente al precio, nos topamos con un error grave en la cantidad de habitaciones (bedrooms): existian propiedades atipicas registradas con hasta 50 cuartos, lo cual estiraba el eje horizontal y disparaba la linea de tendencia a precios irreales. Para corregir este ruido y no arruinar el modelo predictivo de la otra semana, aplicamos un filtro para evaluar unicamente propiedades logicas con 10 habitaciones o menos. Ya con los datos limpios, ambos graficos de dispersion nos muestran una tendencia positiva y clara: a mayor tamano, mayor es el precio por noche. En el grafico de capacidad (accommodates) vemos una distribucion constante y logica a lo largo de todo el eje, mientras que en el de habitaciones los datos se concentran fuertemente en alquileres pequenos de 1 a 3 cuartos. En resumen, ambas graficas nos confirman que el espacio fisico es un factor determinante para el costo y que ambas son excelentes variables predictoras, siempre y cuando limpiemos los valores extremos.
 
+Durante el analisis de las variables de espacio frente al precio, nos topamos con un error grave en la cantidad de habitaciones (bedrooms): existian propiedades atipicas registradas con hasta 50 cuartos, lo cual estiraba el eje horizontal y disparaba la linea de tendencia a precios irreales. Para corregir este ruido y no arruinar el modelo predictivo de la otra semana, aplicamos un filtro para evaluar unicamente propiedades logicas con 10 habitaciones o menos. Ya con los datos limpios, ambos graficos de dispersion nos muestran una tendencia positiva y clara: a mayor tamano, mayor es el precio por noche. En el grafico de capacidad (accommodates) vemos una distribucion constante y logica a lo largo de todo el eje, mientras que en el de habitaciones los datos se concentran fuertemente en alquileres pequenos de 1 a 3 cuartos. En resumen, ambas graficas nos confirman que el espacio fisico es un factor determinante para el costo y que ambas son excelentes variables predictoras, siempre y cuando limpiemos los valores extremos.
 
 ## Multicolinealidad (beds vs accommodates)
 
@@ -383,12 +391,13 @@ ggplot(datos_multi_limpios, aes(x = beds, y = accommodates)) +
        y = "Capacidad (Personas)") +
   theme_minimal()
 ```
-Al analizar la multicolinealidad entre la cantidad de camas (beds) y la capacidad de personas (accommodates), confirmamos una relacion extremadamente fuerte. Al limpiar los datos de valores incoherentes (como registros con mas de 100 camas), la grafica muestra que ambas variables se mueven casi de forma identica; a medida que sube el numero de camas, sube la capacidad de forma lineal. En la matriz de correlacion esto se refleja con un valor de 0.81, lo cual es altisimo. Para nuestro modelo de regresion lineal de la otra semana, este hallazgo es fundamental porque nos avisa que no debemos usar ambas variables al mismo tiempo, ya que estariamos duplicando informacion y causando inestabilidad en los coeficientes del modelo. Lo ideal sera quedarnos unicamente con la capacidad (accommodates) por ser una variable mas estandarizada para predecir el precio.
 
+Al analizar la multicolinealidad entre la cantidad de camas (beds) y la capacidad de personas (accommodates), confirmamos una relacion extremadamente fuerte. Al limpiar los datos de valores incoherentes (como registros con mas de 100 camas), la grafica muestra que ambas variables se mueven casi de forma identica; a medida que sube el numero de camas, sube la capacidad de forma lineal. En la matriz de correlacion esto se refleja con un valor de 0.81, lo cual es altisimo. Para nuestro modelo de regresion lineal de la otra semana, este hallazgo es fundamental porque nos avisa que no debemos usar ambas variables al mismo tiempo, ya que estariamos duplicando informacion y causando inestabilidad en los coeficientes del modelo. Lo ideal sera quedarnos unicamente con la capacidad (accommodates) por ser una variable mas estandarizada para predecir el precio.
 
 # Modelos predictivos
 
 ## 4. y 6. División del Set de Datos (Entrenamiento y Prueba)
+
 ```{r division-datos}
 # Fijar una semilla para que los resultados sean siempre los mismos (reproducibilidad)
 set.seed(123)
@@ -407,14 +416,14 @@ test_data <- listings_clean[-indice_train, ]
 dim(train_data)
 dim(test_data)
 ```
-Se utilizó un criterio de división del 80% para el conjunto de entrenamiento (aproximadamente 137,398 filas) y un 20% para el conjunto de prueba (aproximadamente 34,350 filas). Esta es una proporción estándar que le da suficientes datos al algoritmo para aprender los patrones complejos, reservando una cantidad robusta para evaluar el error real. También se aplicó un muestreo aleatorio simple (no estratificado), porque en problemas de regresión con volúmenes masivos de datos (más de 170,000 observaciones), el muestreo aleatorio garantiza por la Ley de los Grandes Números que la distribución de la variable respuesta (price) y de las características se mantenga altamente representativa en ambos conjuntos. No se aplicaron técnicas de balanceo artificial, ya que estas se utilizan principalmente para problemas de clasificación con clases minoritarias, no para regresión continua.
 
+Se utilizó un criterio de división del 80% para el conjunto de entrenamiento (aproximadamente 137,398 filas) y un 20% para el conjunto de prueba (aproximadamente 34,350 filas). Esta es una proporción estándar que le da suficientes datos al algoritmo para aprender los patrones complejos, reservando una cantidad robusta para evaluar el error real. También se aplicó un muestreo aleatorio simple (no estratificado), porque en problemas de regresión con volúmenes masivos de datos (más de 170,000 observaciones), el muestreo aleatorio garantiza por la Ley de los Grandes Números que la distribución de la variable respuesta (price) y de las características se mantenga altamente representativa en ambos conjuntos. No se aplicaron técnicas de balanceo artificial, ya que estas se utilizan principalmente para problemas de clasificación con clases minoritarias, no para regresión continua.
 
 ## 5. Ingeniería de Características y Selección de Variables
 
-1. **Selección de Predictores Clave:** Elegimos `accommodates` (capacidad), `bedrooms` (habitaciones) y `bathrooms` (baños) ya que demostraron una clara tendencia positiva con el precio en los gráficos de dispersión. También incluiremos `number_of_reviews` y `review_scores_rating` para capturar el impacto de la opinión de los usuarios.
-2. **Eliminación por Multicolinealidad:** Como se demostró en la evaluación de correlaciones, la variable `beds` (camas) tiene una correlación superior a 0.80 con `accommodates`. Incluir ambas generaría multicolinealidad perfecta, desestabilizando los coeficientes del modelo. Por lo tanto, **excluimos `beds`** definitivamente.
-3. **Filtro de Valores Atípicos:** Entrenar un modelo con propiedades de \$40,000 por noche o casas con 50 cuartos arruinaría la línea de tendencia. Aplicaremos un filtro para conservar únicamente el mercado real y lógico (precios < \$1,000 y habitaciones <= 10).
+1.  **Selección de Predictores Clave:** Elegimos `accommodates` (capacidad), `bedrooms` (habitaciones) y `bathrooms` (baños) ya que demostraron una clara tendencia positiva con el precio en los gráficos de dispersión. También incluiremos `number_of_reviews` y `review_scores_rating` para capturar el impacto de la opinión de los usuarios.
+2.  **Eliminación por Multicolinealidad:** Como se demostró en la evaluación de correlaciones, la variable `beds` (camas) tiene una correlación superior a 0.80 con `accommodates`. Incluir ambas generaría multicolinealidad perfecta, desestabilizando los coeficientes del modelo. Por lo tanto, **excluimos `beds`** definitivamente.
+3.  **Filtro de Valores Atípicos:** Entrenar un modelo con propiedades de \$40,000 por noche o casas con 50 cuartos arruinaría la línea de tendencia. Aplicaremos un filtro para conservar únicamente el mercado real y lógico (precios \< \$1,000 y habitaciones \<= 10).
 
 ```{r ingenieria-caracteristicas}
 # Preparar el set de entrenamiento (Train)
@@ -438,5 +447,71 @@ test_data_model <- test_data %>%
 dim(train_data_model)
 dim(test_data_model)
 ```
-Al verificar las dimensiones con la función `dim()`, observamos que nuestro conjunto de entrenamiento se redujo a 48,442 observaciones, y el de prueba a 12,173 observaciones, ambos conservando exactamente las 6 variables** clave seleccionadas. Esta reducción drástica (respecto a las más de 137,000 filas iniciales) es un paso vital. La disminución ocurrió principalmente por la función `drop_na()`, la cual descartó todas aquellas propiedades que tenían campos vacíos (como anuncios nuevos que aún no poseían reseñas o calificaciones en `review_scores_rating`). Asimismo, se eliminaron los valores atípicos extremos filtrados en el paso anterior. Gracias a esta limpieza profunda, garantizamos que el algoritmo de regresión se alimente exclusivamente de propiedades con información completa y precios realistas, evitando que datos nulos (`NA`) generen errores matemáticos durante el entrenamiento.
 
+Al verificar las dimensiones con la función `dim()`, observamos que nuestro conjunto de entrenamiento se redujo a 48,442 observaciones, y el de prueba a 12,173 observaciones, ambos conservando exactamente las 6 variables\*\* clave seleccionadas. Esta reducción drástica (respecto a las más de 137,000 filas iniciales) es un paso vital. La disminución ocurrió principalmente por la función `drop_na()`, la cual descartó todas aquellas propiedades que tenían campos vacíos (como anuncios nuevos que aún no poseían reseñas o calificaciones en `review_scores_rating`). Asimismo, se eliminaron los valores atípicos extremos filtrados en el paso anterior. Gracias a esta limpieza profunda, garantizamos que el algoritmo de regresión se alimente exclusivamente de propiedades con información completa y precios realistas, evitando que datos nulos (`NA`) generen errores matemáticos durante el entrenamiento.
+
+# 7. Modelo Univariado de Regresión Lineal
+
+### Creación y Resumen del Modelo
+
+```{r modelo-univariado}
+# Entrenar el modelo lineal simple usando dataset de entrenamiento
+modelo_uni <- lm(price ~ accommodates, data = train_data_model)
+
+# Mostrar el resumen estadístico del modelo
+summary(modelo_uni)
+```
+
+Al analizar los resultados estadísticos del modelo lineal simple, extraemos varias conclusiones clave sobre el comportamiento de los datos. Primero, el algoritmo calculó una ecuación predictiva donde el precio base estimado de una propiedad arranca en aproximadamente \$71.81, incrementando en promedio \$33.46 por cada huésped adicional que la vivienda pueda alojar. La significancia estadística de este predictor es indudable, ya que su valor *p* (*p-value*) es prácticamente cero (\< 2e-16), confirmando matemáticamente que la capacidad de alojamiento tiene un impacto real y directo sobre la tarifa. Sin embargo, al revisar la bondad de ajuste, el modelo presenta un coeficiente de determinación ($R^2$) de 0.3005. Esto indica que la variable `accommodates` por sí sola logra explicar el 30.05% de la variabilidad de los precios en la plataforma; aunque es un porcentaje respetable para una única característica, deja casi un 70% de la varianza sin explicar. Esta limitación comprueba nuestra hipótesis inicial: el mercado inmobiliario es multivariable y necesitamos avanzar hacia un modelo de regresión múltiple para lograr estimaciones precisas.
+
+## Representación Gráfica del Modelo
+
+```{r}
+# Graficar los datos reales (puntos azules) y la línea de predicción (roja)
+ggplot(data = train_data_model, aes(x = accommodates, y = price)) +
+  geom_point(color = "#4682B4", alpha = 0.2) +
+  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1.2) +
+  labs(title = "Regresión Lineal Simple: Precio vs Capacidad", 
+       x = "Capacidad (Cantidad de Personas)", 
+       y = "Precio por Noche ($)") +
+  theme_minimal()
+```
+
+Al observar la representación visual de nuestro modelo, la línea de tendencia roja ilustra de forma clara la ecuación matemática calculada por el algoritmo: existe una tendencia positiva innegable donde a mayor capacidad de huéspedes, mayor es el precio sugerido por noche. Sin embargo, la distribución de los puntos azules (que representan los precios reales de las propiedades) revela una enorme dispersión vertical. Por ejemplo, si observamos las propiedades con capacidad para 2 o 4 personas, vemos que sus precios reales fluctúan drásticamente desde menos de 50 hasta rozar los 1,000 por noche. Esta masiva variabilidad alrededor de la línea de predicción es la evidencia gráfica de por qué nuestro coeficiente de determinación ($R^2$) es de apenas 30.05%. La línea roja solo logra capturar la tendencia promedio base, pero es completamente "ciega" a otros factores cruciales que influyen en el precio (como el lujo, la ubicación o el tipo de propiedad). Esto ratifica de forma contundente la necesidad de construir un modelo de regresión lineal múltiple.
+
+## Análisis de Residuales (Errores del Modelo)
+
+```{r residuos-uni, fig.height=8, fig.width=8}
+# Dividir el panel gráfico para mostrar los 4 diagnósticos estándar de R
+par(mfrow = c(2, 2))
+plot(modelo_uni)
+par(mfrow = c(1, 1)) # Restaurae el panel a la normalidad
+
+# Graficar un histograma de los residuos para ver su distribución
+hist(modelo_uni$residuals, main = "Distribución de los Residuos (Errores)", 
+     xlab = "Residuo (Precio Real - Precio Predicho)", 
+     col = "#E9967A", border = "white", breaks = 40)
+```
+
+Al evaluar las gráficas de diagnóstico generadas, encontramos claras evidencias de que el modelo univariado no cumple con los supuestos ideales de una regresión lineal:
+
+1.  **Heterocedasticidad (Residuals vs Fitted):** En el primer gráfico superior izquierdo, observamos cómo los puntos forman "columnas" (debido a que la capacidad es un número entero) que se van abriendo cada vez más hacia abajo a medida que el valor predicho (*Fitted values*) aumenta. La línea roja central también tiene una ligera inclinación hacia abajo. Esto indica heterocedasticidad: el modelo no se equivoca de forma pareja, sino que comete errores mucho más grandes al intentar adivinar el precio de las propiedades de mayor capacidad.
+
+2.  **Falta de Normalidad (Q-Q Residuals y Distribución):** En el gráfico superior derecho (*Q-Q Residuals*), los puntos negros en los extremos superior e inferior se separan brutalmente de la línea punteada teórica (formando una especie de "S" alargada). Esto se confirma al ver el histograma anaranjado, el cual no forma una campana perfecta, sino que está claramente sesgado hacia la derecha, con una larga "cola" de errores positivos muy altos (es decir, el modelo subestimó por mucho el precio de las propiedades de lujo).
+
+3.   **Conclusión:** Esta violación a los supuestos matemáticos nos demuestra que usar solo la variable `accommodates` genera un modelo inestable y sesgado para propiedades de alto valor. Es la justificación estadística definitiva de por qué debemos saltar al siguiente paso y construir un Modelo de Regresión Lineal Múltiple.
+
+
+## Resultados de la Predicción (Conjunto de Prueba)
+```{r prediccion-uni, warning=FALSE, message=FALSE}}
+# Realizar las predicciones con los datos nuevos
+pred_uni <- predict(modelo_uni, newdata = test_data_model)
+
+# Calcular el RMSE comparando la predicción contra el precio real
+rmse_uni <- RMSE(pred_uni, test_data_model$price)
+cat("El RMSE (Error promedio) del modelo univariado es: $", round(rmse_uni, 2), "\n")
+
+# Resumen estadístico de las diferencias (Precio Real - Precio Predicho)
+summary(test_data_model$price - pred_uni)
+```
+El valor de nuestro RMSE nos indica que, en promedio, el modelo univariado se equivoca por **$142.26** al adivinar el precio de una casa que nunca ha visto. Al revisar el resumen estadístico de las diferencias (Precio Real - Precio Predicho), notamos fallas muy marcadas en los extremos. Por ejemplo, el valor mínimo de -583.22 indica que el modelo sobreestimó brutalmente una propiedad (pensó que costaba casi \$600 más de su valor real). Por el contrario, el valor máximo de 860.26 demuestra que el modelo se quedó cortísimo frente a una propiedad premium (estimó \$860 menos de la realidad). Sin embargo, la mediana de -32.12 nos muestra que, para las propiedades estándar de la plataforma, el error del modelo no es tan descabellado.
