@@ -384,3 +384,30 @@ ggplot(datos_multi_limpios, aes(x = beds, y = accommodates)) +
   theme_minimal()
 ```
 Al analizar la multicolinealidad entre la cantidad de camas (beds) y la capacidad de personas (accommodates), confirmamos una relacion extremadamente fuerte. Al limpiar los datos de valores incoherentes (como registros con mas de 100 camas), la grafica muestra que ambas variables se mueven casi de forma identica; a medida que sube el numero de camas, sube la capacidad de forma lineal. En la matriz de correlacion esto se refleja con un valor de 0.81, lo cual es altisimo. Para nuestro modelo de regresion lineal de la otra semana, este hallazgo es fundamental porque nos avisa que no debemos usar ambas variables al mismo tiempo, ya que estariamos duplicando informacion y causando inestabilidad en los coeficientes del modelo. Lo ideal sera quedarnos unicamente con la capacidad (accommodates) por ser una variable mas estandarizada para predecir el precio.
+
+
+# Modelos predictivos
+
+## 4. División del Set de Datos (Entrenamiento y Prueba)
+```{r division-datos}
+# Fijar una semilla para que los resultados sean siempre los mismos (reproducibilidad)
+set.seed(123)
+
+# Calcular el total de filas de nuestro dataset limpio
+total_filas <- nrow(listings_clean)
+
+# Crear un índice con el 80% de las filas elegidas al azar
+indice_train <- sample(1:total_filas, size = 0.8 * total_filas)
+
+# Dividir los datos usando el índice
+train_data <- listings_clean[indice_train, ]
+test_data <- listings_clean[-indice_train, ]
+
+# Mostrar el número de filas y columnas de cada conjunto
+dim(train_data)
+dim(test_data)
+```
+Se utilizó un criterio de división del 80% para el conjunto de entrenamiento (aproximadamente 137,398 filas) y un 20% para el conjunto de prueba (aproximadamente 34,350 filas). Esta es una proporción estándar que le da suficientes datos al algoritmo para aprender los patrones complejos, reservando una cantidad robusta para evaluar el error real. También se aplicó un muestreo aleatorio simple (no estratificado), porque en problemas de regresión con volúmenes masivos de datos (más de 170,000 observaciones), el muestreo aleatorio garantiza por la Ley de los Grandes Números que la distribución de la variable respuesta (price) y de las características se mantenga altamente representativa en ambos conjuntos. No se aplicaron técnicas de balanceo artificial, ya que estas se utilizan principalmente para problemas de clasificación con clases minoritarias, no para regresión continua.
+
+
+
