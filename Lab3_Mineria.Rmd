@@ -388,7 +388,7 @@ Al analizar la multicolinealidad entre la cantidad de camas (beds) y la capacida
 
 # Modelos predictivos
 
-## 4. División del Set de Datos (Entrenamiento y Prueba)
+## 4. y 6. División del Set de Datos (Entrenamiento y Prueba)
 ```{r division-datos}
 # Fijar una semilla para que los resultados sean siempre los mismos (reproducibilidad)
 set.seed(123)
@@ -410,4 +410,33 @@ dim(test_data)
 Se utilizó un criterio de división del 80% para el conjunto de entrenamiento (aproximadamente 137,398 filas) y un 20% para el conjunto de prueba (aproximadamente 34,350 filas). Esta es una proporción estándar que le da suficientes datos al algoritmo para aprender los patrones complejos, reservando una cantidad robusta para evaluar el error real. También se aplicó un muestreo aleatorio simple (no estratificado), porque en problemas de regresión con volúmenes masivos de datos (más de 170,000 observaciones), el muestreo aleatorio garantiza por la Ley de los Grandes Números que la distribución de la variable respuesta (price) y de las características se mantenga altamente representativa en ambos conjuntos. No se aplicaron técnicas de balanceo artificial, ya que estas se utilizan principalmente para problemas de clasificación con clases minoritarias, no para regresión continua.
 
 
+## 5. Ingeniería de Características y Selección de Variables
+
+1. **Selección de Predictores Clave:** Elegimos `accommodates` (capacidad), `bedrooms` (habitaciones) y `bathrooms` (baños) ya que demostraron una clara tendencia positiva con el precio en los gráficos de dispersión. También incluiremos `number_of_reviews` y `review_scores_rating` para capturar el impacto de la opinión de los usuarios.
+2. **Eliminación por Multicolinealidad:** Como se demostró en la evaluación de correlaciones, la variable `beds` (camas) tiene una correlación superior a 0.80 con `accommodates`. Incluir ambas generaría multicolinealidad perfecta, desestabilizando los coeficientes del modelo. Por lo tanto, **excluimos `beds`** definitivamente.
+3. **Filtro de Valores Atípicos:** Entrenar un modelo con propiedades de \$40,000 por noche o casas con 50 cuartos arruinaría la línea de tendencia. Aplicaremos un filtro para conservar únicamente el mercado real y lógico (precios < \$1,000 y habitaciones <= 10).
+
+```{r ingenieria-caracteristicas}
+# Preparar el set de entrenamiento (Train)
+train_data_model <- train_data %>%
+  filter(!is.na(price), price < 1000, 
+         !is.na(bedrooms), bedrooms <= 10,
+         !is.na(bathrooms), !is.na(accommodates)) %>%
+  # Seleccionar solo la variable respuesta y los predictores numéricos limpios
+  select(price, accommodates, bedrooms, bathrooms, number_of_reviews, review_scores_rating) %>%
+  drop_na() # Es vital quitar cualquier fila con NAs
+
+# Preparar el set de prueba (Test) aplicando EXACTAMENTE las mismas reglas
+test_data_model <- test_data %>%
+  filter(!is.na(price), price < 1000, 
+         !is.na(bedrooms), bedrooms <= 10,
+         !is.na(bathrooms), !is.na(accommodates)) %>%
+  select(price, accommodates, bedrooms, bathrooms, number_of_reviews, review_scores_rating) %>%
+  drop_na()
+
+# Verificar las dimensiones finales de los datos que entrarán al modelo
+dim(train_data_model)
+dim(test_data_model)
+```
+Al verificar las dimensiones con la función `dim()`, observamos que nuestro conjunto de entrenamiento se redujo a 48,442 observaciones, y el de prueba a 12,173 observaciones, ambos conservando exactamente las 6 variables** clave seleccionadas. Esta reducción drástica (respecto a las más de 137,000 filas iniciales) es un paso vital. La disminución ocurrió principalmente por la función `drop_na()`, la cual descartó todas aquellas propiedades que tenían campos vacíos (como anuncios nuevos que aún no poseían reseñas o calificaciones en `review_scores_rating`). Asimismo, se eliminaron los valores atípicos extremos filtrados en el paso anterior. Gracias a esta limpieza profunda, garantizamos que el algoritmo de regresión se alimente exclusivamente de propiedades con información completa y precios realistas, evitando que datos nulos (`NA`) generen errores matemáticos durante el entrenamiento.
 
