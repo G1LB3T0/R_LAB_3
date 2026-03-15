@@ -20,6 +20,7 @@ library(readr)
 library(nortest)
 library(caret)
 library(car)
+library(glmnet)
 ```
 
 ## Link de GITHUB
@@ -565,6 +566,19 @@ hist(modelo_multi$residuals,
 
 En este caso observamos que la mayor parte de los residuos se concentra alrededor del valor 0, lo que indica que el modelo suele cometer errores relativamente pequeños para una gran cantidad de observaciones. Esto es una señal positiva, ya que significa que el modelo no presenta un sesgo fuerte hacia sobreestimar o subestimar sistemáticamente los precios. No obstante, la distribución presenta una ligera asimetría hacia la derecha, lo que indica que existen algunos casos donde el modelo subestima considerablemente el precio de ciertas propiedades.
 
+```{r}
+# Predicciones del modelo múltiple
+pred_multi <- predict(modelo_multi, newdata = test_data_model)
+
+
+rmse_multi <- RMSE(pred_multi, test_data_model$price)
+
+cat("El RMSE del modelo múltiple es: $", round(rmse_multi,2), "\n")
+```
+
+
+
+
 # 9. Análisis Modelo y Multicolinealidad
 ## Modelo
 ```{r}
@@ -613,6 +627,8 @@ hist(modelo_mejorado$residuals,
      border = "white",
      breaks = 40)
 ```
+El histograma de los residuos muestra que la mayoría de los errores se concentran alrededor de 0, lo cual indica que el modelo no presenta un sesgo fuerte hacia sobreestimar o subestimar los precios.
+
 ## Gráfica
 
 ```{r}
@@ -636,4 +652,73 @@ rmse_mejorado <- RMSE(pred_mejorado_test, test_data_model$price)
 
 cat("El RMSE del modelo mejorado es: ", round(rmse_mejorado,2), "\n")
 ```
+Este valor indica que el modelo comete en promedio un error de aproximadamente $136 al estimar el precio de una propiedad que no fue utilizada durante el entrenamiento.
 
+Comparado con el modelo anterior, este resultado representa una ligera mejora en la capacidad predictiva del modelo, lo que confirma que la eliminación de variables redundantes permitió obtener un modelo más estable y con mejor capacidad de generalización.
+
+El modelo mejorado logra capturar relaciones importantes entre las características de las propiedades y su precio. Variables relacionadas con el tamaño de la propiedad y la percepción de los huéspedes resultaron ser predictores significativos.
+
+# 11. Modelo con Técnicas de Regularización
+
+```{r}
+x_train <- model.matrix(price ~ accommodates + bathrooms + number_of_reviews + review_scores_rating,
+                        train_data_model)[,-1]
+
+
+y_train <- train_data_model$price
+
+
+x_test <- model.matrix(price ~ accommodates + bathrooms + number_of_reviews + review_scores_rating,
+                       test_data_model)[,-1]
+
+y_test <- test_data_model$price
+```
+
+## Modelo Ridge.
+```{r}
+set.seed(123)
+
+ridge_model <- cv.glmnet(
+  x_train,
+  y_train,
+  alpha = 0
+)
+
+plot(ridge_model)
+```
+En el gráfico se observan dos líneas verticales:
+
+- λ mínimo (lambda.min) → el valor de λ que produce el menor error de predicción.
+
+- λ 1-SE (lambda.1se) → el valor más simple dentro de un rango aceptable de error.
+
+El modelo final utiliza λ mínimo, ya que proporciona el mejor desempeño predictivo en el conjunto de validación.
+
+```{r}
+pred_ridge <- predict(ridge_model,
+                      s = ridge_model$lambda.min,
+                      newx = x_test)
+
+rmse_ridge <- RMSE(pred_ridge, y_test)
+
+cat("RMSE del modelo Ridge: $", round(rmse_ridge,2), "\n")
+```
+
+## Comparación entre modelos
+```{r}
+resultados <- data.frame(
+  Modelo = c("Regresion Simple",
+             "Regresion Multiple",
+             "Modelo Mejorado",
+             "Ridge"),
+  RMSE = c(rmse_uni,
+           rmse_multi,
+           rmse_mejorado,
+           rmse_ridge)
+)
+
+print(resultados)
+```
+La inclusión de múltiples variables predictoras permite mejorar considerablemente la capacidad de estimación del precio de las propiedades en comparación con un modelo univariado.
+
+Aunque la regularización mediante Ridge Regression ayuda a estabilizar los coeficientes del modelo, en este caso no produce una mejora significativa en el error de predicción. Por lo tanto, el modelo múltiple mejorado presenta el mejor equilibrio entre simplicidad, interpretabilidad y precisión predictiva.
