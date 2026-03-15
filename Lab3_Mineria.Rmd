@@ -515,3 +515,54 @@ cat("El RMSE (Error promedio) del modelo univariado es: $", round(rmse_uni, 2), 
 summary(test_data_model$price - pred_uni)
 ```
 El valor de nuestro RMSE nos indica que, en promedio, el modelo univariado se equivoca por **$142.26** al adivinar el precio de una casa que nunca ha visto. Al revisar el resumen estadístico de las diferencias (Precio Real - Precio Predicho), notamos fallas muy marcadas en los extremos. Por ejemplo, el valor mínimo de -583.22 indica que el modelo sobreestimó brutalmente una propiedad (pensó que costaba casi \$600 más de su valor real). Por el contrario, el valor máximo de 860.26 demuestra que el modelo se quedó cortísimo frente a una propiedad premium (estimó \$860 menos de la realidad). Sin embargo, la mediana de -32.12 nos muestra que, para las propiedades estándar de la plataforma, el error del modelo no es tan descabellado.
+
+# 8. Modelo de regresión lineal Múltiple
+```{r}
+modelo_multi <- lm(price ~ accommodates + bedrooms + bathrooms + 
+                   number_of_reviews + review_scores_rating,
+                   data = train_data_model)
+
+
+summary(modelo_multi)
+```
+
+En el resumen estadístico del modelo observamos los coeficientes asociados a cada variable predictora. Estos coeficientes representan el cambio esperado en el precio por noche cuando la variable correspondiente aumenta una unidad, manteniendo constantes las demás variables.
+
+## Representación Gráfica.
+```{r}
+# Grafico de valores predichos vs reales
+pred_multi_train <- predict(modelo_multi, newdata = train_data_model)
+
+ggplot(data.frame(real = train_data_model$price,
+                  pred = pred_multi_train),
+       aes(x = real, y = pred)) +
+  geom_point(alpha = 0.3, color = "#4682B4") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Modelo Multiple: Precio Real vs Precio Predicho",
+       x = "Precio Real",
+       y = "Precio Predicho") +
+  theme_minimal()
+```
+Al analizar el gráfico Precio Real vs Precio Predicho, podemos observar que el modelo de regresión múltiple logra capturar una tendencia positiva clara entre los valores reales y los valores estimados.
+Sin embargo, también se aprecia una dispersión considerable de los puntos alrededor de la línea de tendencia. Esto indica que, aunque el modelo logra identificar la dirección general del comportamiento de los precios, todavía existe una variabilidad importante que no está siendo completamente explicada por las variables utilizadas.
+
+## Análisis de residuos.
+```{r}
+
+par(mfrow = c(2,2))
+plot(modelo_multi)
+par(mfrow = c(1,1))
+
+
+hist(modelo_multi$residuals,
+     main = "Distribucion de Residuos del Modelo Multiple",
+     xlab = "Residuo",
+     col = "#E9967A",
+     border = "white",
+     breaks = 40)
+```
+
+En este caso observamos que la mayor parte de los residuos se concentra alrededor del valor 0, lo que indica que el modelo suele cometer errores relativamente pequeños para una gran cantidad de observaciones. Esto es una señal positiva, ya que significa que el modelo no presenta un sesgo fuerte hacia sobreestimar o subestimar sistemáticamente los precios. No obstante, la distribución presenta una ligera asimetría hacia la derecha, lo que indica que existen algunos casos donde el modelo subestima considerablemente el precio de ciertas propiedades.
+
+
+
