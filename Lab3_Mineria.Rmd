@@ -589,4 +589,51 @@ vif(modelo_multi)
 ```
 Todos los valores de VIF se encuentran por debajo de 5, lo cual indica que no existe un problema grave de multicolinealidad en el modelo.
 
+# 10. Modelo Mejorado
+Aunque los valores de VIF indican que la multicolinealidad no es severa, estas variables describen características muy similares del alojamiento. Por esta razón, resulta conveniente simplificar el modelo utilizando únicamente las variables con mayor capacidad predictiva y menor redundancia.
+
+```{r}
+modelo_mejorado <- lm(price ~ accommodates + bathrooms + 
+                      number_of_reviews + review_scores_rating,
+                      data = train_data_model)
+
+summary(modelo_mejorado)
+```
+
+## Residuos modelo mejorado.
+```{r}
+par(mfrow = c(2,2))
+plot(modelo_mejorado)
+par(mfrow = c(1,1))
+
+hist(modelo_mejorado$residuals,
+     main = "Distribución de Residuos del Modelo Mejorado",
+     xlab = "Residuo",
+     col = "#E9967A",
+     border = "white",
+     breaks = 40)
+```
+## Gráfica
+
+```{r}
+pred_mejorado <- predict(modelo_mejorado, newdata = train_data_model)
+
+ggplot(data.frame(real = train_data_model$price,
+                  pred = pred_mejorado),
+       aes(x = real, y = pred)) +
+  geom_point(alpha = 0.3, color = "#4682B4") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Modelo Mejorado: Precio Real vs Precio Predicho",
+       x = "Precio Real",
+       y = "Precio Predicho") +
+  theme_minimal()
+```
+## Comparación de modelos
+```{r}
+pred_mejorado_test <- predict(modelo_mejorado, newdata = test_data_model)
+
+rmse_mejorado <- RMSE(pred_mejorado_test, test_data_model$price)
+
+cat("El RMSE del modelo mejorado es: ", round(rmse_mejorado,2), "\n")
+```
 
