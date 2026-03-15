@@ -19,6 +19,7 @@ library(stringr)
 library(readr)
 library(nortest)
 library(caret)
+library(car)
 ```
 
 ## Link de GITHUB
@@ -564,5 +565,28 @@ hist(modelo_multi$residuals,
 
 En este caso observamos que la mayor parte de los residuos se concentra alrededor del valor 0, lo que indica que el modelo suele cometer errores relativamente pequeños para una gran cantidad de observaciones. Esto es una señal positiva, ya que significa que el modelo no presenta un sesgo fuerte hacia sobreestimar o subestimar sistemáticamente los precios. No obstante, la distribución presenta una ligera asimetría hacia la derecha, lo que indica que existen algunos casos donde el modelo subestima considerablemente el precio de ciertas propiedades.
 
+# 9. Análisis Modelo y Multicolinealidad
+## Modelo
+```{r}
+cor(train_data_model %>%
+      select(accommodates, bedrooms, bathrooms, number_of_reviews, review_scores_rating))
+```
+
+Se identifica una correlación fuerte entre:
+
+- accommodates y bedrooms: 0.83
+
+- bedrooms y bathrooms: 0.71
+
+- accommodates y bathrooms: 0.67
+
+Estas correlaciones son esperadas en el contexto de propiedades inmobiliarias, ya que viviendas con mayor capacidad para huéspedes suelen tener más habitaciones y más baños. Por lo tanto, estas variables describen características estructurales muy relacionadas del alojamiento.
+
+
+## Multicolinealidad
+```{r}
+vif(modelo_multi)
+```
+Todos los valores de VIF se encuentran por debajo de 5, lo cual indica que no existe un problema grave de multicolinealidad en el modelo.
 
 
