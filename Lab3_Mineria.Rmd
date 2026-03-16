@@ -2,7 +2,9 @@
 title: "LAB 3"
 author: "Luis Gonzalez, Joel Jaquez, Fabian Morales"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: 
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -505,7 +507,7 @@ Al evaluar las gráficas de diagnóstico generadas, encontramos claras evidencia
 
 
 ## Resultados de la Predicción (Conjunto de Prueba)
-```{r prediccion-uni, warning=FALSE, message=FALSE}}
+```{r prediccion-uni, warning=FALSE, message=FALSE}
 # Realizar las predicciones con los datos nuevos
 pred_uni <- predict(modelo_uni, newdata = test_data_model)
 
@@ -722,3 +724,13 @@ print(resultados)
 La inclusión de múltiples variables predictoras permite mejorar considerablemente la capacidad de estimación del precio de las propiedades en comparación con un modelo univariado.
 
 Aunque la regularización mediante Ridge Regression ayuda a estabilizar los coeficientes del modelo, en este caso no produce una mejora significativa en el error de predicción. Por lo tanto, el modelo múltiple mejorado presenta el mejor equilibrio entre simplicidad, interpretabilidad y precisión predictiva.
+
+## 12. Utilice cada modelo con el conjunto de prueba y determine la eficiencia del algoritmo para predecir el precio de las casas. ¿Qué tan bien lo hizo?¿Qué medidas usó para determinar la calidad de la predicción?
+
+Para evaluar la calidad de las predicciones de cada algoritmo, se utilizo el conjunto de datos de prueba. La metrica seleccionada para determinar la eficiencia fue el RMSE, que es la Raiz del Error Cuadratico Medio. Se eligio esta medida porque nos permite interpretar el error promedio directamente en dolares por noche. Al aplicar los datos de prueba, el modelo univariado presento un RMSE de 142.26 dolares; el modelo de regresion multiple completo alcanzo 136.12 dolares; el modelo multiple mejorado obtuvo 136.14 dolares; y el modelo con regularizacion Ridge registro un RMSE de 136.25 dolares. Pasar de un modelo simple a los multiples redujo el margen de error, demostrando que el precio depende de varios factores.
+
+
+## 13. Discusion de efectividad y seleccion del mejor modelo
+
+El modelo univariado fue el menos efectivo y es insuficiente para explicar la variabilidad de los precios. Los tres modelos mas complejos mostraron un desempeno casi identico. El mejor modelo para predecir el precio de las casas es el Modelo Multiple Mejorado. Este modelo logra practicamente el mismo poder predictivo, con un error promedio de 136.14 dolares, pero con una estructura mucho mas simple porque eliminamos variables redundantes que generaban multicolinealidad. La regularizacion Ridge no logro reducir el error respecto a este modelo, confirmando que la seleccion manual de variables fue la mejor estrategia.
+
